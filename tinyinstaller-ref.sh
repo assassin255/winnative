@@ -18,7 +18,11 @@ FORCE=0
 TARGET=""
 IMAGE_PATH=""
 IMAGE_URL="$DEFAULT_IMAGE_URL"
+IMAGE_LABEL="Windows 11 LTSB"
 DOWNLOAD_DIR="$DEFAULT_DOWNLOAD_DIR"
+
+WINDOWS_11_URL="https://archive.org/download/win_20260312/win.img"
+WINDOWS_10_LTSC_2023_URL="https://archive.org/download/win_20260215/win.img"
 
 RESET=$'\033[0m'
 BOLD=$'\033[1m'
@@ -30,9 +34,37 @@ BLUE=$'\033[34m'
 MAGENTA=$'\033[35m'
 CYAN=$'\033[36m'
 WHITE=$'\033[37m'
-
+rrrr
 c() {
   printf '%b%s%b' "$1" "$2" "$RESET"
+}
+
+set_image_profile() {
+  case "$1" in
+    1|win11|windows11|11)
+      IMAGE_URL="$WINDOWS_11_URL"
+      IMAGE_LABEL="Windows 11 LTSB"
+      ;;
+    2|win10|windows10|ltsc2023|2023)
+      IMAGE_URL="$WINDOWS_10_LTSC_2023_URL"
+      IMAGE_LABEL="Windows 10 LTSC 2023"
+      ;;
+    *)
+      fail "unknown Windows image profile: $1"
+      ;;
+  esac
+}
+
+choose_windows_image() {
+  echo
+  echo "$(c "$MAGENTA" "[select Windows image]")"
+  echo "  $(c "$YELLOW" "1)") $(c "$WHITE" "Windows 11 LTSB")"
+  echo "  $(c "$YELLOW" "2)") $(c "$WHITE" "Windows 10 LTSC 2023")"
+  read -rp "$(c "$GREEN" "Choose [1-2, Enter=1]: ")" img_choice
+  img_choice="${img_choice:-1}"
+  set_image_profile "$img_choice"
+  log "selected image: $IMAGE_LABEL"
+  log "selected url: $IMAGE_URL"
 }
 
 log() { printf '[%s] %s\n' "$APP_NAME" "$*" | tee -a "$LOG_FILE"; }
