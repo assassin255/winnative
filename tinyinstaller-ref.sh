@@ -34,7 +34,7 @@ BLUE=$'\033[34m'
 MAGENTA=$'\033[35m'
 CYAN=$'\033[36m'
 WHITE=$'\033[37m'
-rrrr
+
 c() {
   printf '%b%s%b' "$1" "$2" "$RESET"
 }
