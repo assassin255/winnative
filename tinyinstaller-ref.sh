@@ -71,6 +71,21 @@ show_state() {
   [[ -f "$STATE_FILE" ]] && { printf '%s\n' "[state]"; cat "$STATE_FILE"; } || true
 }
 
+load_state_target() {
+  [[ -f "$STATE_FILE" ]] || return 1
+  local saved
+  saved="$(sed -n 's/.*"target":"\([^"]*\)".*/\1/p' "$STATE_FILE" | head -n 1)"
+  [[ -n "$saved" ]] || return 1
+  [[ -b "$saved" ]] || return 1
+  TARGET="$saved"
+  log "restored target from state: $TARGET"
+}
+
+restore_target_if_possible() {
+  [[ -n "$TARGET" ]] && return 0
+  load_state_target || true
+}
+
 env_check() {
   local sys os
   os="$(uname -s 2>/dev/null || true)"
@@ -349,6 +364,8 @@ main() {
   done
   env_check
   show_banner
+
+  restore_target_if_possible
 
   if [[ $AUTO -eq 1 && -z "$TARGET" ]]; then
     auto_pick_target
