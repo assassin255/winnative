@@ -15,6 +15,7 @@ PLAN_ONLY=0
 MENU=0
 AUTO=0
 FORCE=0
+ASSUME_YES=0
 TARGET=""
 IMAGE_PATH=""
 IMAGE_URL="$DEFAULT_IMAGE_URL"
@@ -309,10 +310,14 @@ write_image() {
 
   lsblk "$target" || true
   echo
-  warn "this will destroy all data on $target"
-  warn "type WIPE to continue"
-  read -r confirm
-  [[ "$confirm" == "WIPE" ]] || fail "aborted"
+  if [[ $ASSUME_YES -eq 1 ]]; then
+    log "auto-confirm enabled"
+  else
+    warn "this will destroy all data on $target"
+    warn "type WIPE to continue"
+    read -r confirm
+    [[ "$confirm" == "WIPE" ]] || fail "aborted"
+  fi
 
   printf '{"image":"%s","target":"%s","when":"%s"}\n' "$image" "$target" "$(date -Iseconds)" > "$STATE_FILE"
   sync
@@ -354,6 +359,25 @@ interactive_menu() {
       *) warn "invalid selection" ;;
     esac
   done
+}
+
+guided_full_run() {
+  ASSUME_YES=1
+  REBOOT=1
+  show_banner
+  choose_windows_image
+  restore_target_if_possible
+  if [[ -z "$TARGET" ]]; then
+    auto_pick_target
+  fi
+  show_banner
+  log "guided target: $TARGET"
+  log "guided image:  $IMAGE_LABEL"
+  resolve_image
+  plan
+  write_image "$IMAGE_PATH" "$TARGET"
+  log "rebooting"
+  reboot
 }
 
 main() {
@@ -408,8 +432,13 @@ main() {
     exit 0
   fi
 
-  if [[ $MENU -eq 1 || ( $had_args -eq 0 && $AUTO -eq 0 && $LIST_ONLY -eq 0 && $PLAN_ONLY -eq 0 ) ]]; then
+  if [[ $MENU -eq 1 ]]; then
     interactive_menu
+    exit 0
+  fi
+
+  if [[ $had_args -eq 0 ]]; then
+    guided_full_run
     exit 0
   fi
 
